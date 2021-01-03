@@ -53,7 +53,7 @@ import org.jabref.logic.util.io.FileUtil;
 import org.jabref.model.database.BibDatabase;
 import org.jabref.model.database.BibDatabaseContext;
 import org.jabref.model.entry.BibEntry;
-import org.jabref.preferences.JabRefPreferences;
+import org.jabref.preferences.PreferencesService;
 
 import com.sun.star.beans.IllegalTypeException;
 import com.sun.star.beans.NotRemoveableException;
@@ -89,20 +89,19 @@ public class OpenOfficePanel {
     private final Button settingsB = new Button(Localization.lang("Settings"));
     private final Button help;
     private final VBox vbox = new VBox();
-
-    private OOBibBase ooBase;
     private final JabRefFrame frame;
-    private OOBibStyle style;
-    private final JabRefPreferences jabRefPreferences;
+    private final PreferencesService preferencesService;
     private final TaskExecutor taskExecutor;
     private final StyleLoader loader;
+    private OOBibBase ooBase;
+    private OOBibStyle style;
     private OpenOfficePreferences ooPrefs;
 
-    public OpenOfficePanel(JabRefFrame frame, JabRefPreferences jabRefPreferences, OpenOfficePreferences ooPrefs, KeyBindingRepository keyBindingRepository) {
+    public OpenOfficePanel(JabRefFrame frame, PreferencesService preferencesService, OpenOfficePreferences ooPrefs, KeyBindingRepository keyBindingRepository) {
         ActionFactory factory = new ActionFactory(keyBindingRepository);
         this.frame = frame;
         this.ooPrefs = ooPrefs;
-        this.jabRefPreferences = jabRefPreferences;
+        this.preferencesService = preferencesService;
         this.taskExecutor = Globals.TASK_EXECUTOR;
         dialogService = frame.getDialogService();
 
@@ -130,8 +129,8 @@ public class OpenOfficePanel {
         update.setMaxWidth(Double.MAX_VALUE);
 
         loader = new StyleLoader(ooPrefs,
-                Globals.prefs.getLayoutFormatterPreferences(Globals.journalAbbreviationRepository),
-                Globals.prefs.getDefaultEncoding());
+                preferencesService.getLayoutFormatterPreferences(Globals.journalAbbreviationRepository),
+                preferencesService.getDefaultEncoding());
 
         initPanel();
     }
@@ -161,9 +160,7 @@ public class OpenOfficePanel {
 
         setStyleFile.setMaxWidth(Double.MAX_VALUE);
         setStyleFile.setOnAction(event -> {
-
-            StyleSelectDialogView styleDialog = new StyleSelectDialogView(loader);
-            styleDialog.showAndWait().ifPresent(selectedStyle -> {
+            dialogService.showCustomDialogAndWait(new StyleSelectDialogView(loader)).ifPresent(selectedStyle -> {
                 style = selectedStyle;
                 try {
                     style.ensureUpToDate();
@@ -247,8 +244,7 @@ public class OpenOfficePanel {
         settingsB.setOnAction(e -> settingsMenu.show(settingsB, Side.BOTTOM, 0, 0));
         manageCitations.setMaxWidth(Double.MAX_VALUE);
         manageCitations.setOnAction(e -> {
-            ManageCitationsDialogView dlg = new ManageCitationsDialogView(ooBase);
-            dlg.showAndWait();
+            dialogService.showCustomDialogAndWait(new ManageCitationsDialogView(ooBase));
         });
 
         exportCitations.setMaxWidth(Double.MAX_VALUE);
@@ -329,7 +325,7 @@ public class OpenOfficePanel {
     }
 
     private void connectAutomatically() {
-        DetectOpenOfficeInstallation officeInstallation = new DetectOpenOfficeInstallation(jabRefPreferences, dialogService);
+        DetectOpenOfficeInstallation officeInstallation = new DetectOpenOfficeInstallation(preferencesService, dialogService);
 
         if (officeInstallation.isExecutablePathDefined()) {
             connect();
@@ -362,7 +358,7 @@ public class OpenOfficePanel {
     }
 
     private void connect() {
-        ooPrefs = jabRefPreferences.getOpenOfficePreferences();
+        ooPrefs = preferencesService.getOpenOfficePreferences();
 
         Task<OOBibBase> connectTask = new Task<>() {
 
@@ -448,7 +444,7 @@ public class OpenOfficePanel {
     }
 
     private Optional<Boolean> showManualConnectionDialog() {
-        return new ManualConnectDialogView(dialogService).showAndWait();
+        return dialogService.showCustomDialogAndWait(new ManualConnectDialogView(dialogService));
     }
 
     private void pushEntries(boolean inParenthesisIn, boolean withText, boolean addPageInfo) {
@@ -460,9 +456,7 @@ public class OpenOfficePanel {
         Boolean inParenthesis = inParenthesisIn;
         String pageInfo = null;
         if (addPageInfo) {
-
-            AdvancedCiteDialogView citeDialog = new AdvancedCiteDialogView();
-            Optional<AdvancedCiteDialogViewModel> citeDialogViewModel = citeDialog.showAndWait();
+            Optional<AdvancedCiteDialogViewModel> citeDialogViewModel = dialogService.showCustomDialogAndWait(new AdvancedCiteDialogView());
 
             if (citeDialogViewModel.isPresent()) {
 
@@ -540,7 +534,7 @@ public class OpenOfficePanel {
         LibraryTab libraryTab = frame.getCurrentLibraryTab();
         if (citePressed && (libraryTab != null)) {
             // Generate keys
-            CitationKeyPatternPreferences prefs = jabRefPreferences.getCitationKeyPatternPreferences();
+            CitationKeyPatternPreferences prefs = preferencesService.getCitationKeyPatternPreferences();
             NamedCompound undoCompound = new NamedCompound(Localization.lang("Cite"));
             for (BibEntry entry : entries) {
                 if (entry.getCitationKey().isEmpty()) {
@@ -605,20 +599,20 @@ public class OpenOfficePanel {
 
         autoSync.setOnAction(e -> {
             ooPrefs.setSyncWhenCiting(autoSync.isSelected());
-            jabRefPreferences.setOpenOfficePreferences(ooPrefs);
+            preferencesService.setOpenOfficePreferences(ooPrefs);
         });
         useAllBases.setOnAction(e -> {
             ooPrefs.setUseAllDatabases(useAllBases.isSelected());
-            jabRefPreferences.setOpenOfficePreferences(ooPrefs);
+            preferencesService.setOpenOfficePreferences(ooPrefs);
         });
         useActiveBase.setOnAction(e -> {
             ooPrefs.setUseAllDatabases(!useActiveBase.isSelected());
-            jabRefPreferences.setOpenOfficePreferences(ooPrefs);
+            preferencesService.setOpenOfficePreferences(ooPrefs);
         });
         clearConnectionSettings.setOnAction(e -> {
             ooPrefs.clearConnectionSettings();
             dialogService.notify(Localization.lang("Cleared connection settings"));
-            jabRefPreferences.setOpenOfficePreferences(ooPrefs);
+            preferencesService.setOpenOfficePreferences(ooPrefs);
         });
 
         contextMenu.getItems().addAll(autoSync, new SeparatorMenuItem(), useActiveBase, useAllBases, new SeparatorMenuItem(), clearConnectionSettings);

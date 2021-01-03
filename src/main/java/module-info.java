@@ -57,6 +57,7 @@ open module org.jabref {
     requires reactfx;
     requires commons.cli;
     requires com.github.tomtung.latex2unicode;
+    requires fastparse;
     requires jbibtex;
     requires citeproc.java;
     requires antlr.runtime;
@@ -81,7 +82,7 @@ open module org.jabref {
     requires org.apache.commons.lang3;
     requires org.antlr.antlr4.runtime;
     requires flowless;
-    requires org.apache.tika.core;
+    requires tika.core;
 
     requires flexmark;
     requires flexmark.ext.gfm.strikethrough;
