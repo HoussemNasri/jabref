@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.prefs.BackingStoreException;
 
+import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyListWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -16,6 +17,7 @@ import org.jabref.gui.AbstractViewModel;
 import org.jabref.gui.DialogService;
 import org.jabref.gui.preferences.ai.AiTab;
 import org.jabref.gui.preferences.autocompletion.AutoCompletionTab;
+import org.jabref.gui.preferences.autorestart.ApplicationRestart;
 import org.jabref.gui.preferences.citationkeypattern.CitationKeyPatternTab;
 import org.jabref.gui.preferences.customentrytypes.CustomEntryTypesTab;
 import org.jabref.gui.preferences.customexporter.CustomExporterTab;
@@ -190,10 +192,25 @@ public class PreferencesDialogViewModel extends AbstractViewModel {
         preferences.flush();
 
         if (!restartWarnings.isEmpty()) {
-            dialogService.showWarningDialogAndWait(Localization.lang("Restart required"),
+            boolean restartRequired = dialogService.showConfirmationDialogAndWait(Localization.lang("Restart required"),
                     String.join(",\n", restartWarnings)
                             + "\n\n"
                             + Localization.lang("You must restart JabRef for this to come into effect."));
+
+            if (restartRequired) {
+                ApplicationRestart.builder()
+                                  .beforeNewProcessCreated(() -> System.out.println("Pre - new process created"))
+                                  .beforeCurrentProcessTerminated(() -> System.out.println("Pre - current process terminated"))
+                                  .terminationPolicy(() -> {
+                                      try {
+                                          Thread.sleep(2000);
+                                      } catch (InterruptedException e) {
+//                                          throw new RuntimeException(e);
+                                      }
+                                      Platform.exit();
+                                  })
+                                  .build().restartApp();
+            }
         }
 
         Injector.setModelOrService(BibEntryTypesManager.class, preferences.getCustomEntryTypesRepository());

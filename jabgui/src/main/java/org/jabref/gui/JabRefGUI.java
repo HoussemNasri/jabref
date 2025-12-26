@@ -447,6 +447,7 @@ public class JabRefGUI extends Application {
 
     @Override
     public void stop() {
+        LOGGER.info("GOOOOD!");
         LOGGER.trace("Stopping JabRef GUI");
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
             LOGGER.trace("Stopping JabRef GUI using a virtual thread executor");

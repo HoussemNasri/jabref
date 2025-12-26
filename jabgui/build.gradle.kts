@@ -99,6 +99,8 @@ dependencies {
 
     implementation("com.github.javakeyring:java-keyring")
 
+    implementation("com.github.oshi:oshi-core-java11:6.9.1")
+
     implementation("info.picocli:picocli")
     annotationProcessor("info.picocli:picocli-codegen")
 
